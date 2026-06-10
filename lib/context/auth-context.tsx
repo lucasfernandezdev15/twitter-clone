@@ -9,6 +9,8 @@ import {
   useState,
 } from "react";
 
+import { clearTokenCookie, setTokenCookie } from "@/lib/auth-cookie";
+
 export type AuthUser = {
   id: string;
   email: string;
@@ -43,9 +45,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       try {
         setToken(storedToken);
         setUser(JSON.parse(storedUser) as AuthUser);
+        setTokenCookie(storedToken);
       } catch {
         localStorage.removeItem(TOKEN_KEY);
         localStorage.removeItem(USER_KEY);
+        clearTokenCookie();
       }
     }
 
@@ -55,6 +59,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const login = useCallback((newToken: string, newUser: AuthUser) => {
     localStorage.setItem(TOKEN_KEY, newToken);
     localStorage.setItem(USER_KEY, JSON.stringify(newUser));
+    setTokenCookie(newToken);
     setToken(newToken);
     setUser(newUser);
   }, []);
@@ -62,6 +67,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const logout = useCallback(() => {
     localStorage.removeItem(TOKEN_KEY);
     localStorage.removeItem(USER_KEY);
+    clearTokenCookie();
     setToken(null);
     setUser(null);
   }, []);

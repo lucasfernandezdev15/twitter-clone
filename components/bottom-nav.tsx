@@ -4,19 +4,27 @@ import { Bell, Home, Search, User } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 
+import { useAuth } from "@/lib/context/auth-context";
+
 type BottomNavProps = {
   unreadCount?: number;
 };
 
-const navItems = [
+const navItemsBase = [
   { href: "/home", label: "Inicio", icon: Home },
   { href: "/search", label: "Buscar", icon: Search },
   { href: "/notifications", label: "Alertas", icon: Bell, showBadge: true },
-  { href: "/profile", label: "Perfil", icon: User },
 ] as const;
 
 export function BottomNav({ unreadCount = 0 }: BottomNavProps) {
   const pathname = usePathname();
+  const { user } = useAuth();
+  const profileHref = user ? `/${user.username}` : "/profile";
+
+  const navItems = [
+    ...navItemsBase,
+    { href: profileHref, label: "Perfil", icon: User },
+  ] as const;
 
   return (
     <nav className="fixed bottom-0 left-0 right-0 z-50 border-t border-zinc-800 bg-[#0f0f0f]/95 backdrop-blur md:hidden">

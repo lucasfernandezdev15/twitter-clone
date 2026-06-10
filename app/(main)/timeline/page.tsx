@@ -1,7 +1,5 @@
-export default function TimelinePage() {
-  return (
-    <main>
-      <h1>Timeline</h1>
-    </main>
-  );
+import { redirect } from "next/navigation";
+
+export default function TimelineRedirectPage() {
+  redirect("/home");
 }

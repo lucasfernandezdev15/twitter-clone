@@ -10,7 +10,7 @@ type SidebarProps = {
   unreadCount?: number;
 };
 
-const navItems = [
+const navItemsBase = [
   { href: "/home", label: "Inicio", icon: Home },
   { href: "/search", label: "Buscar", icon: Search },
   {
@@ -19,12 +19,17 @@ const navItems = [
     icon: Bell,
     showBadge: true,
   },
-  { href: "/profile", label: "Perfil", icon: User },
 ] as const;
 
 export function Sidebar({ unreadCount = 0 }: SidebarProps) {
   const pathname = usePathname();
   const { user } = useAuth();
+  const profileHref = user ? `/${user.username}` : "/profile";
+
+  const navItems = [
+    ...navItemsBase,
+    { href: profileHref, label: "Perfil", icon: User },
+  ] as const;
 
   return (
     <aside className="sticky top-0 hidden h-screen w-64 shrink-0 flex-col border-r border-zinc-800 px-3 py-4 md:flex">

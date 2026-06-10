@@ -1,12 +1,39 @@
 import type { NextRequest } from "next/server";
 import { NextResponse } from "next/server";
 
-const PROTECTED_PAGE_PREFIXES = ["/home", "/timeline", "/profile", "/search"];
+const PROTECTED_PAGE_PREFIXES = [
+  "/home",
+  "/timeline",
+  "/profile",
+  "/search",
+  "/notifications",
+];
+
+const RESERVED_PATHS = new Set([
+  "login",
+  "register",
+  "home",
+  "search",
+  "notifications",
+  "timeline",
+  "profile",
+]);
 
 function isProtectedPage(pathname: string): boolean {
-  return PROTECTED_PAGE_PREFIXES.some(
-    (prefix) => pathname === prefix || pathname.startsWith(`${prefix}/`)
-  );
+  if (
+    PROTECTED_PAGE_PREFIXES.some(
+      (prefix) => pathname === prefix || pathname.startsWith(`${prefix}/`)
+    )
+  ) {
+    return true;
+  }
+
+  const segments = pathname.split("/").filter(Boolean);
+  if (segments.length === 1 && !RESERVED_PATHS.has(segments[0])) {
+    return true;
+  }
+
+  return false;
 }
 
 function isProtectedApi(pathname: string): boolean {
@@ -128,6 +155,8 @@ export const config = {
     "/timeline/:path*",
     "/profile/:path*",
     "/search/:path*",
+    "/notifications/:path*",
+    "/:username",
     "/api/:path*",
   ],
 };
