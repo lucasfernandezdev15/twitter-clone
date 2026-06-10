@@ -55,3 +55,21 @@ export function createTestServer(
     request: supertest(server),
   };
 }
+
+export function wrapRouteWithParams<T extends string>(
+  handler: (
+    request: Request,
+    context: { params: Promise<Record<T, string>> }
+  ) => Promise<Response>,
+  paramKey: T
+) {
+  return (request: Request) => {
+    const url = new URL(request.url);
+    const segments = url.pathname.split("/").filter(Boolean);
+    const value = segments[segments.length - 1] ?? "";
+
+    return handler(request, {
+      params: Promise.resolve({ [paramKey]: value } as Record<T, string>),
+    });
+  };
+}

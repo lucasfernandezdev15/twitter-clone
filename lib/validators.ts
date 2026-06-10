@@ -16,4 +16,15 @@ export const loginSchema = z.object({
   password: z.string().min(1),
 });
 
-export const tweetSchema = z.object({});
+export const tweetSchema = z.object({
+  content: z
+    .string()
+    .transform((value) => value.trim())
+    .pipe(
+      z
+        .string()
+        .min(1, "Content cannot be empty")
+        .max(280, "Content must be at most 280 characters")
+    ),
+  parentId: z.string().optional(),
+});
