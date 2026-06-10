@@ -91,3 +91,21 @@ export function wrapRouteWithUsername(
     });
   };
 }
+
+export function wrapRouteWithTweetId(
+  handler: (
+    request: Request,
+    context: { params: Promise<{ id: string }> }
+  ) => Promise<Response>
+) {
+  return (request: Request) => {
+    const url = new URL(request.url);
+    const segments = url.pathname.split("/").filter(Boolean);
+    const tweetsIndex = segments.indexOf("tweets");
+    const id = tweetsIndex >= 0 ? (segments[tweetsIndex + 1] ?? "") : "";
+
+    return handler(request, {
+      params: Promise.resolve({ id }),
+    });
+  };
+}
