@@ -1,15 +1,37 @@
-export async function signToken(): Promise<string> {
-  throw new Error("Not implemented");
+import bcrypt from "bcryptjs";
+import jwt from "jsonwebtoken";
+
+function getJwtSecret(): string {
+  const secret = process.env.JWT_SECRET;
+  if (!secret) {
+    throw new Error("JWT_SECRET is not set");
+  }
+  return secret;
 }
 
-export async function verifyToken(): Promise<unknown> {
-  throw new Error("Not implemented");
+export function signToken(userId: string): string {
+  return jwt.sign({ userId }, getJwtSecret(), { expiresIn: "7d" });
 }
 
-export async function hashPassword(): Promise<string> {
-  throw new Error("Not implemented");
+export function verifyToken(token: string): { userId: string } | null {
+  try {
+    const payload = jwt.verify(token, getJwtSecret()) as { userId?: string };
+    if (!payload.userId || typeof payload.userId !== "string") {
+      return null;
+    }
+    return { userId: payload.userId };
+  } catch {
+    return null;
+  }
 }
 
-export async function comparePassword(): Promise<boolean> {
-  throw new Error("Not implemented");
+export async function hashPassword(password: string): Promise<string> {
+  return bcrypt.hash(password, 10);
+}
+
+export async function comparePassword(
+  password: string,
+  hash: string
+): Promise<boolean> {
+  return bcrypt.compare(password, hash);
 }
