@@ -73,3 +73,21 @@ export function wrapRouteWithParams<T extends string>(
     });
   };
 }
+
+export function wrapRouteWithUsername(
+  handler: (
+    request: Request,
+    context: { params: Promise<{ username: string }> }
+  ) => Promise<Response>
+) {
+  return (request: Request) => {
+    const url = new URL(request.url);
+    const segments = url.pathname.split("/").filter(Boolean);
+    const usersIndex = segments.indexOf("users");
+    const username = usersIndex >= 0 ? (segments[usersIndex + 1] ?? "") : "";
+
+    return handler(request, {
+      params: Promise.resolve({ username }),
+    });
+  };
+}
