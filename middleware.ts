@@ -1,7 +1,7 @@
 import type { NextRequest } from "next/server";
 import { NextResponse } from "next/server";
 
-const PROTECTED_PAGE_PREFIXES = ["/timeline", "/profile", "/search"];
+const PROTECTED_PAGE_PREFIXES = ["/home", "/timeline", "/profile", "/search"];
 
 function isProtectedPage(pathname: string): boolean {
   return PROTECTED_PAGE_PREFIXES.some(
@@ -123,5 +123,11 @@ export async function middleware(request: NextRequest) {
 }
 
 export const config = {
-  matcher: ["/timeline/:path*", "/profile/:path*", "/search/:path*", "/api/:path*"],
+  matcher: [
+    "/home/:path*",
+    "/timeline/:path*",
+    "/profile/:path*",
+    "/search/:path*",
+    "/api/:path*",
+  ],
 };
