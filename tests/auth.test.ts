@@ -144,6 +144,49 @@ describe("Auth API", () => {
       );
       expect(prismaMock.user.create).not.toHaveBeenCalled();
     });
+
+    it("returns 400 for invalid JSON body", async () => {
+      const response = await request
+        .post("/api/auth/register")
+        .set("Content-Type", "application/json")
+        .send("{ invalid");
+
+      expect(response.status).toBe(400);
+      expect(response.body.error).toBe("Invalid JSON body");
+    });
+
+    it("returns 409 for generic duplicate user error", async () => {
+      prismaMock.user.create.mockRejectedValue(
+        new Prisma.PrismaClientKnownRequestError("Unique constraint failed", {
+          code: "P2002",
+          clientVersion: "6.19.3",
+          meta: { target: ["unknown"] },
+        })
+      );
+
+      const response = await request.post("/api/auth/register").send({
+        email: "new@example.com",
+        username: "newuser",
+        displayName: "New",
+        password: "password123",
+      });
+
+      expect(response.status).toBe(409);
+      expect(response.body.error).toBe("User already exists");
+    });
+
+    it("propagates unexpected database errors", async () => {
+      prismaMock.user.create.mockRejectedValue(new Error("Database offline"));
+
+      const response = await request.post("/api/auth/register").send({
+        email: "new@example.com",
+        username: "newuser",
+        displayName: "New",
+        password: "password123",
+      });
+
+      expect(response.status).toBe(500);
+    });
   });
 
   describe("POST /api/auth/login", () => {
@@ -197,6 +240,31 @@ describe("Auth API", () => {
 
       expect(response.status).toBe(401);
       expect(response.body.error).toBe("Invalid credentials");
+    });
+
+    it("returns 400 when validation fails", async () => {
+      const response = await request.post("/api/auth/login").send({
+        email: "not-an-email",
+        password: "",
+      });
+
+      expect(response.status).toBe(400);
+      expect(response.body.error).toEqual(
+        expect.objectContaining({
+          email: expect.any(Array),
+          password: expect.any(Array),
+        })
+      );
+    });
+
+    it("returns 400 for invalid JSON body", async () => {
+      const response = await request
+        .post("/api/auth/login")
+        .set("Content-Type", "application/json")
+        .send("{ invalid");
+
+      expect(response.status).toBe(400);
+      expect(response.body.error).toBe("Invalid JSON body");
     });
   });
 
@@ -271,6 +339,19 @@ describe("Auth API", () => {
       expect(response.status).toBe(401);
       expect(response.body.error).toBe("Unauthorized");
       expect(prismaMock.user.findUnique).not.toHaveBeenCalled();
+    });
+
+    it("returns 401 when user no longer exists", async () => {
+      prismaMock.user.findUnique.mockResolvedValue(null);
+
+      const token = signToken("deleted-user");
+
+      const response = await request
+        .get("/api/auth/me")
+        .set("Authorization", `Bearer ${token}`);
+
+      expect(response.status).toBe(401);
+      expect(response.body.error).toBe("Unauthorized");
     });
   });
 });

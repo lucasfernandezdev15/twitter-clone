@@ -47,6 +47,24 @@ describe("Search API", () => {
       }
     });
 
+    it("trims the search query before searching", async () => {
+      prismaMock.user.findMany.mockResolvedValue([alice]);
+
+      const response = await request.get("/api/users/search?q=%20ali%20");
+
+      expect(response.status).toBe(200);
+      expect(prismaMock.user.findMany).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: {
+            OR: [
+              { username: { contains: "ali" } },
+              { displayName: { contains: "ali" } },
+            ],
+          },
+        })
+      );
+    });
+
     it("finds users by username", async () => {
       prismaMock.user.findMany.mockResolvedValue([alice]);
 
@@ -97,6 +115,29 @@ describe("Search API", () => {
 
       expect(response.status).toBe(200);
       expect(response.body.users).toEqual([]);
+    });
+
+    it("returns 400 when query param is missing", async () => {
+      const response = await request.get("/api/users/search");
+
+      expect(response.status).toBe(400);
+      expect(response.body.error).toBe("Query parameter q is required");
+      expect(prismaMock.user.findMany).not.toHaveBeenCalled();
+    });
+
+    it("returns 400 when query is empty", async () => {
+      const response = await request.get("/api/users/search?q=");
+
+      expect(response.status).toBe(400);
+      expect(response.body.error).toBe("Query parameter q is required");
+      expect(prismaMock.user.findMany).not.toHaveBeenCalled();
+    });
+
+    it("returns 400 when query is only whitespace", async () => {
+      const response = await request.get("/api/users/search?q=%20%20");
+
+      expect(response.status).toBe(400);
+      expect(response.body.error).toBe("Query parameter q is required");
     });
   });
 });

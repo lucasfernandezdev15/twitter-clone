@@ -158,6 +158,24 @@ describe("Follows API", () => {
       expect(response.body.error).toBe("You cannot follow yourself");
       expect(prismaMock.follow.create).not.toHaveBeenCalled();
     });
+
+    it("returns 401 without authentication", async () => {
+      const response = await request.post("/api/users/bob/follow");
+
+      expect(response.status).toBe(401);
+      expect(response.body.error).toBe("Unauthorized");
+    });
+
+    it("returns 404 when user does not exist", async () => {
+      prismaMock.user.findUnique.mockResolvedValue(null);
+
+      const response = await request
+        .post("/api/users/missing/follow")
+        .set("Authorization", `Bearer ${authToken}`);
+
+      expect(response.status).toBe(404);
+      expect(response.body.error).toBe("User not found");
+    });
   });
 
   describe("GET /api/users/[username]/followers", () => {
@@ -200,6 +218,15 @@ describe("Follows API", () => {
         orderBy: { createdAt: "desc" },
       });
     });
+
+    it("returns 404 when user does not exist", async () => {
+      prismaMock.user.findUnique.mockResolvedValue(null);
+
+      const response = await request.get("/api/users/missing/followers");
+
+      expect(response.status).toBe(404);
+      expect(response.body.error).toBe("User not found");
+    });
   });
 
   describe("GET /api/users/[username]/following", () => {
@@ -241,6 +268,15 @@ describe("Follows API", () => {
         },
         orderBy: { createdAt: "desc" },
       });
+    });
+
+    it("returns 404 when user does not exist", async () => {
+      prismaMock.user.findUnique.mockResolvedValue(null);
+
+      const response = await request.get("/api/users/missing/following");
+
+      expect(response.status).toBe(404);
+      expect(response.body.error).toBe("User not found");
     });
   });
 });

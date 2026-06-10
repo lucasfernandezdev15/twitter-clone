@@ -103,6 +103,13 @@ describe("Notifications API", () => {
         },
       });
     });
+
+    it("returns 401 without authentication", async () => {
+      const response = await request.get("/api/notifications");
+
+      expect(response.status).toBe(401);
+      expect(response.body.error).toBe("Unauthorized");
+    });
   });
 
   describe("POST /api/notifications/read", () => {
@@ -130,6 +137,13 @@ describe("Notifications API", () => {
         data: { read: true },
       });
     });
+
+    it("returns 401 without authentication", async () => {
+      const response = await request.post("/api/notifications/read");
+
+      expect(response.status).toBe(401);
+      expect(response.body.error).toBe("Unauthorized");
+    });
   });
 
   describe("GET /api/notifications/unread-count", () => {
@@ -155,6 +169,13 @@ describe("Notifications API", () => {
       expect(prismaMock.notification.count).toHaveBeenCalledWith({
         where: { userId: alice.id, read: false },
       });
+    });
+
+    it("returns 401 without authentication", async () => {
+      const response = await request.get("/api/notifications/unread-count");
+
+      expect(response.status).toBe(401);
+      expect(response.body.error).toBe("Unauthorized");
     });
   });
 });

@@ -159,6 +159,90 @@ describe("Tweets API", () => {
       );
       expect(prismaMock.tweet.create).not.toHaveBeenCalled();
     });
+
+    it("returns 400 for invalid JSON body", async () => {
+      const response = await request
+        .post("/api/tweets")
+        .set("Authorization", `Bearer ${authToken}`)
+        .set("Content-Type", "application/json")
+        .send("{ invalid");
+
+      expect(response.status).toBe(400);
+      expect(response.body.error).toBe("Invalid JSON body");
+    });
+
+    it("returns 404 when parent tweet does not exist", async () => {
+      prismaMock.tweet.findUnique.mockResolvedValue(null);
+
+      const response = await request
+        .post("/api/tweets")
+        .set("Authorization", `Bearer ${authToken}`)
+        .send({ content: "A reply", parentId: "missing-parent" });
+
+      expect(response.status).toBe(404);
+      expect(response.body.error).toBe("Parent tweet not found");
+    });
+
+    it("does not notify when replying to your own tweet", async () => {
+      const parentTweet = {
+        id: "parent-1",
+        authorId: mockAuthor.id,
+        content: "My tweet",
+      };
+      const replyTweet = {
+        ...mockTweet,
+        id: "tweet-reply",
+        content: "Self reply",
+        parentId: "parent-1",
+      };
+
+      prismaMock.tweet.findUnique
+        .mockResolvedValueOnce(parentTweet)
+        .mockResolvedValueOnce(parentTweet);
+      prismaMock.tweet.create.mockResolvedValue(replyTweet);
+
+      const response = await request
+        .post("/api/tweets")
+        .set("Authorization", `Bearer ${authToken}`)
+        .send({ content: "Self reply", parentId: "parent-1" });
+
+      expect(response.status).toBe(201);
+      expect(prismaMock.notification.create).not.toHaveBeenCalled();
+    });
+
+    it("creates a reply and notifies the parent author", async () => {
+      const parentTweet = {
+        id: "parent-1",
+        authorId: "user-2",
+        content: "Parent",
+      };
+      const replyTweet = {
+        ...mockTweet,
+        id: "tweet-reply",
+        content: "A reply",
+        parentId: "parent-1",
+      };
+
+      prismaMock.tweet.findUnique
+        .mockResolvedValueOnce(parentTweet)
+        .mockResolvedValueOnce(parentTweet);
+      prismaMock.tweet.create.mockResolvedValue(replyTweet);
+
+      const response = await request
+        .post("/api/tweets")
+        .set("Authorization", `Bearer ${authToken}`)
+        .send({ content: "A reply", parentId: "parent-1" });
+
+      expect(response.status).toBe(201);
+      expect(prismaMock.notification.create).toHaveBeenCalledWith({
+        data: {
+          userId: "user-2",
+          actorId: mockAuthor.id,
+          type: "REPLY",
+          tweetId: "tweet-reply",
+        },
+      });
+    });
   });
 
   describe("DELETE /api/tweets/[id]", () => {
@@ -266,6 +350,19 @@ describe("Tweets API", () => {
 
       expect(response.status).toBe(404);
       expect(response.body.error).toBe("Tweet not found");
+    });
+
+    it("returns likedByCurrentUser false without authentication", async () => {
+      prismaMock.tweet.findUnique.mockResolvedValue({
+        ...mockTweet,
+        _count: { likes: 1 },
+      });
+
+      const response = await request.get("/api/tweets/tweet-1");
+
+      expect(response.status).toBe(200);
+      expect(response.body.tweet.likedByCurrentUser).toBe(false);
+      expect(prismaMock.like.findUnique).not.toHaveBeenCalled();
     });
   });
 });

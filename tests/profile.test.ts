@@ -143,6 +143,23 @@ describe("Profile API", () => {
       expect(prismaMock.follow.findUnique).not.toHaveBeenCalled();
     });
 
+    it("returns isFollowing false when viewing own profile", async () => {
+      const ownProfile = {
+        ...bobProfile,
+        id: "user-1",
+        username: "alice",
+      };
+      prismaMock.user.findUnique.mockResolvedValue(ownProfile);
+
+      const response = await request
+        .get("/api/users/alice")
+        .set("Authorization", `Bearer ${authToken}`);
+
+      expect(response.status).toBe(200);
+      expect(response.body.user.isFollowing).toBe(false);
+      expect(prismaMock.follow.findUnique).not.toHaveBeenCalled();
+    });
+
     it("returns isFollowing true when the current user follows the profile", async () => {
       prismaMock.user.findUnique.mockResolvedValue(bobProfile);
       prismaMock.follow.findUnique.mockResolvedValue({
@@ -231,6 +248,38 @@ describe("Profile API", () => {
           take: 3,
         })
       );
+    });
+
+    it("returns 404 when user does not exist", async () => {
+      prismaMock.user.findUnique.mockResolvedValue(null);
+
+      const response = await request.get("/api/users/missing/tweets");
+
+      expect(response.status).toBe(404);
+      expect(response.body.error).toBe("User not found");
+    });
+
+    it("uses default limit for invalid limit param", async () => {
+      prismaMock.user.findUnique.mockResolvedValue({ id: bobProfile.id });
+      prismaMock.tweet.findMany.mockResolvedValue([mockTweetOne]);
+      prismaMock.like.findMany.mockResolvedValue([]);
+
+      await request.get("/api/users/bob/tweets?limit=abc");
+
+      expect(prismaMock.tweet.findMany).toHaveBeenCalledWith(
+        expect.objectContaining({ take: 21 })
+      );
+    });
+
+    it("returns hasLiked false without authentication", async () => {
+      prismaMock.user.findUnique.mockResolvedValue({ id: bobProfile.id });
+      prismaMock.tweet.findMany.mockResolvedValue([mockTweetOne]);
+      prismaMock.like.findMany.mockResolvedValue([]);
+
+      const response = await request.get("/api/users/bob/tweets");
+
+      expect(response.status).toBe(200);
+      expect(response.body.tweets[0].hasLiked).toBe(false);
     });
   });
 });

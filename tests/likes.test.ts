@@ -143,6 +143,24 @@ describe("Likes API", () => {
       expect(prismaMock.notification.create).not.toHaveBeenCalled();
     });
 
+    it("returns 401 without authentication", async () => {
+      const response = await request.post("/api/tweets/tweet-1/like");
+
+      expect(response.status).toBe(401);
+      expect(response.body.error).toBe("Unauthorized");
+    });
+
+    it("returns 404 when tweet does not exist", async () => {
+      prismaMock.tweet.findUnique.mockResolvedValue(null);
+
+      const response = await request
+        .post("/api/tweets/missing/like")
+        .set("Authorization", `Bearer ${authToken}`);
+
+      expect(response.status).toBe(404);
+      expect(response.body.error).toBe("Tweet not found");
+    });
+
     it("does not notify when liking your own tweet", async () => {
       prismaMock.tweet.findUnique.mockResolvedValue({
         id: "tweet-1",

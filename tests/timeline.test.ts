@@ -187,5 +187,46 @@ describe("Timeline API", () => {
       expect(response.body.error).toBe("Unauthorized");
       expect(prismaMock.tweet.findMany).not.toHaveBeenCalled();
     });
+
+    it("returns an empty timeline", async () => {
+      prismaMock.follow.findMany.mockResolvedValue([]);
+      prismaMock.tweet.findMany.mockResolvedValue([]);
+      prismaMock.like.findMany.mockResolvedValue([]);
+
+      const response = await request
+        .get("/api/timeline")
+        .set("Authorization", `Bearer ${authToken}`);
+
+      expect(response.status).toBe(200);
+      expect(response.body.tweets).toEqual([]);
+      expect(response.body.nextCursor).toBeNull();
+    });
+
+    it("returns tweets without hasLiked when there are no likes", async () => {
+      prismaMock.follow.findMany.mockResolvedValue([]);
+      prismaMock.tweet.findMany.mockResolvedValue([mockTweetOne]);
+      prismaMock.like.findMany.mockResolvedValue([]);
+
+      const response = await request
+        .get("/api/timeline")
+        .set("Authorization", `Bearer ${authToken}`);
+
+      expect(response.status).toBe(200);
+      expect(response.body.tweets[0].hasLiked).toBe(false);
+    });
+
+    it("uses default limit for invalid limit param", async () => {
+      prismaMock.follow.findMany.mockResolvedValue([]);
+      prismaMock.tweet.findMany.mockResolvedValue([]);
+      prismaMock.like.findMany.mockResolvedValue([]);
+
+      await request
+        .get("/api/timeline?limit=-5")
+        .set("Authorization", `Bearer ${authToken}`);
+
+      expect(prismaMock.tweet.findMany).toHaveBeenCalledWith(
+        expect.objectContaining({ take: 21 })
+      );
+    });
   });
 });
